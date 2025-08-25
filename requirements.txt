@@ -1,0 +1,4 @@
+fastapi
+uvicorn[standard]
+python-dotenv     # only if you’re using .env for local dev
+
