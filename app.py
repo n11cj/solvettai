@@ -57,7 +57,6 @@ for i in range(MAX_CAT):
             word_data[i] = json.load(f)
 
 def auth_ok(request: Request, x_api_key: str | None):
-    print("auth_ok", request, x_api_key, API_KEY, ENV)
     return (x_api_key == API_KEY) or (request.query_params.get("key") == API_KEY)
 
 @app.get("/health")
@@ -65,7 +64,6 @@ def health(): return {"ok": True}
 
 @app.get("/newword/{num}")
 def newword(num: int, request: Request, x_api_key: str | None = Header(None)):
-    print("ATEST", request, x_api_key)
     if not auth_ok(request, x_api_key):
         raise HTTPException(status_code=403, detail="Forbidden")
 
