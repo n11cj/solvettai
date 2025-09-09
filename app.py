@@ -23,8 +23,7 @@ ENV = os.getenv("ENV", "dev")
 from fastapi.middleware.cors import CORSMiddleware
 import os
 MAX_CAT = 6
-MAX_MOB_CHAR = 8
-MAX_RETRIES = 50
+MAX_RETRIES = 20
 DATA_DIR = "data"
 
 
@@ -67,18 +66,22 @@ def newword(num: int, request: Request, x_api_key: str | None = Header(None)):
     if not auth_ok(request, x_api_key):
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    if num in [0, 100]:
+ # print("num ", num)
+    if num in [0, 100, 500, 700, 1000]:
         return word_data[0][0]
 
     file_select = num % MAX_CAT
     words = word_data[file_select]
 
+    max_mob_char = 10 if num >= 1000 else (7 if num >= 700 else 6)
+
     # mobile range: prefer shorter clusters
     for _ in range(MAX_RETRIES):
         chosen = random.choice(words)
-        if 100 <= num < 200 and len(chosen["word"]) > MAX_MOB_CHAR:
+        if len(chosen["word"]) > max_mob_char:
             continue
         return chosen
 
+    print("Not found correct lenth (file, num) :",  file_select, num)
     return words[0]  # safe fallback
 
