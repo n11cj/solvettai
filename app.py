@@ -47,6 +47,19 @@ else:
         allow_credentials=True,
     )
 
+
+
+import datetime, zoneinfo
+from fastapi import FastAPI
+
+TZ = zoneinfo.ZoneInfo("Europe/London")
+
+def today_index(max_words):
+    today = datetime.datetime.now(TZ).date()
+    days = (today - datetime.date(2025, 6, 4)).days
+    return days % max_words
+
+
 # --- Load data once ---
 word_data = {}
 for i in range(MAX_CAT):
@@ -68,7 +81,9 @@ def newword(num: int, request: Request, x_api_key: str | None = Header(None)):
 
  # print("num ", num)
     if num in [0, 100, 500, 700, 1000]:
-        return word_data[0][0]
+        idx = today_index(len(word_data[0]))
+        #print("today_index ",(len(word_data[0])) , idx)
+        return word_data[0][idx]
 
     file_select = num % MAX_CAT
     words = word_data[file_select]
