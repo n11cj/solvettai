@@ -68,22 +68,61 @@ for i in range(MAX_CAT):
         with open(path, "r", encoding="utf-8") as f:
             word_data[i] = json.load(f)
 
+import base64
+
+def tempWa(data: dict) -> dict:
+    if not "Desc" in data:
+        data["Desc"] = data["desc"]
+    return data
+
+def to_base64(data: dict, isWeb: bool) -> dict:
+
+    if not isWeb:
+        return data
+
+    encoded = data.copy()
+
+    # Encode each letter in the array individually
+    if isinstance(encoded["word"], list):
+        encoded["word"] = [
+            base64.b64encode(w.encode("utf-8")).decode("utf-8")
+            for w in encoded["word"]
+        ]
+    else:
+        encoded["word"] = base64.b64encode(encoded["word"].encode("utf-8")).decode("utf-8")
+
+    encoded["desc"] = base64.b64encode(
+        encoded.get("desc", "").encode("utf-8")
+    ).decode("utf-8")
+
+    return encoded
+
 def auth_ok(request: Request, x_api_key: str | None):
     return (x_api_key == API_KEY) or (request.query_params.get("key") == API_KEY)
+
+
 
 @app.get("/health")
 def health(): return {"ok": True}
 
 @app.get("/newword/{num}")
 def newword(num: int, request: Request, x_api_key: str | None = Header(None)):
+
     if not auth_ok(request, x_api_key):
         raise HTTPException(status_code=403, detail="Forbidden")
 
- # print("num ", num)
+    # Detect if web flag is set (bitmask)
+    isWeb = bool(num & 0x800)
+
+    # Clear the web flag from num
+    num = num & ~0x800
+
+     #print("num ", num)
     if num in [0, 100, 500, 700, 1000]:
         idx = today_index(len(word_data[0]))
-        #print("today_index ",(len(word_data[0])) , idx)
-        return word_data[0][idx]
+         #print("today_index ",(len(word_data[0])) , idx, word_data[0][0])
+        return tempWa(to_base64(word_data[0][0], isWeb))
+         #return word_data[0][idx]
 
     file_select = num % MAX_CAT
     words = word_data[file_select]
@@ -95,8 +134,8 @@ def newword(num: int, request: Request, x_api_key: str | None = Header(None)):
         chosen = random.choice(words)
         if len(chosen["word"]) > max_mob_char:
             continue
-        return chosen
+        return tempWa(to_base64(chosen, isWeb))
 
     print("Not found correct lenth (file, num) :",  file_select, num)
-    return words[0]  # safe fallback
+    return tempWa(to_base64(words[0], isWeb))  # safe fallback
 
