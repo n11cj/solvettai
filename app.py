@@ -53,6 +53,7 @@ import datetime, zoneinfo
 from fastapi import FastAPI
 
 TZ = zoneinfo.ZoneInfo("Europe/London")
+VER = 123
 
 def today_index(max_words):
     today = datetime.datetime.now(TZ).date()
@@ -70,14 +71,12 @@ for i in range(MAX_CAT):
 
 import base64
 
-def tempWa(data: dict) -> dict:
-    if not "Desc" in data:
-        data["Desc"] = data["desc"]
-    return data
-
 def to_base64(data: dict, isWeb: bool) -> dict:
+    data["ver"] = VER
 
+    # temp fix, remove after next deploy
     if not isWeb:
+        data["Desc"] = data["desc"]
         return data
 
     encoded = data.copy()
@@ -94,6 +93,9 @@ def to_base64(data: dict, isWeb: bool) -> dict:
     encoded["desc"] = base64.b64encode(
         encoded.get("desc", "").encode("utf-8")
     ).decode("utf-8")
+
+    # workaround until all platforms are updates
+    encoded["Desc"] = encoded["desc"]
 
     return encoded
 
@@ -121,7 +123,7 @@ def newword(num: int, request: Request, x_api_key: str | None = Header(None)):
     if num in [0, 100, 500, 700, 1000]:
         idx = today_index(len(word_data[0]))
          #print("today_index ",(len(word_data[0])) , idx, word_data[0][0])
-        return tempWa(to_base64(word_data[0][0], isWeb))
+        return to_base64(word_data[0][0], isWeb)
          #return word_data[0][idx]
 
     file_select = num % MAX_CAT
@@ -134,8 +136,8 @@ def newword(num: int, request: Request, x_api_key: str | None = Header(None)):
         chosen = random.choice(words)
         if len(chosen["word"]) > max_mob_char:
             continue
-        return tempWa(to_base64(chosen, isWeb))
+        return to_base64(chosen, isWeb)
 
     print("Not found correct lenth (file, num) :",  file_select, num)
-    return tempWa(to_base64(words[0], isWeb))  # safe fallback
+    return to_base64(words[0], isWeb)  # safe fallback
 
