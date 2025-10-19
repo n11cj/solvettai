@@ -123,8 +123,7 @@ def newword(num: int, request: Request, x_api_key: str | None = Header(None)):
     if num in [0, 100, 500, 700, 1000]:
         idx = today_index(len(word_data[0]))
          #print("today_index ",(len(word_data[0])) , idx, word_data[0][0])
-        return to_base64(word_data[0][0], isWeb)
-         #return word_data[0][idx]
+        return to_base64(word_data[0][idx], isWeb)
 
     file_select = num % MAX_CAT
     words = word_data[file_select]
