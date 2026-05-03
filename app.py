@@ -115,8 +115,8 @@ def get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 # Tune these:
-limiter_newwords = RateLimiter(max_requests=2, window_seconds=60)  # 30/min/IP
-limiter_newword  = RateLimiter(max_requests=10, window_seconds=60)  # 60/min/IP
+limiter_newwords = RateLimiter(max_requests=5, window_seconds=60)  # 5/min/IP
+limiter_newword  = RateLimiter(max_requests=20, window_seconds=60)  # 20/min/IP
 
 #################################################
 #################################################
