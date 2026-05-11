@@ -54,10 +54,20 @@ from fastapi import FastAPI
 TZ = zoneinfo.ZoneInfo("Europe/London")
 VER = 123
 
-def today_index(max_words):
-    today = datetime.datetime.now(TZ).date()
+def today_index(max_words: int, today: datetime.date | None = None):
+    real_today = datetime.datetime.now(TZ).date()
+
+    # Use real today if no date provided
+    if today is None:
+        today = real_today
+    else:
+        # Reject dates too far from actual today
+        if abs((today - real_today).days) > 6:
+            today = real_today
+
     days = (today - datetime.date(2025, 6, 4)).days
     return days % max_words
+
 
 # --- Load data once ---
 word_data = {0: [], 1: []}
@@ -152,7 +162,6 @@ def to_base64(data: dict, isWeb: bool) -> dict:
     return encoded
 
 def auth_ok(request: Request, x_api_key: str | None):
-    print(x_api_key, API_KEY);
     return (x_api_key == API_KEY) or (request.query_params.get("key") == API_KEY)
 
 
@@ -184,16 +193,19 @@ def newwords(
     num: int,
     request: Request,
     count: int = 20,
+    today: datetime.date | None = None,
     x_api_key: str | None = Header(None),
 ):
 
     limiter_newwords.check(get_client_ip(request))
 
     # (optional) also clamp count to prevent abuse
-    count = max(1, min(int(count), 50))
+   #  count = max(1, min(int(count), 50))
 
     if not auth_ok(request, x_api_key):
         raise HTTPException(status_code=403, detail="Forbidden")
+
+    isWeb = bool(num & 0x800)
 
     isWeb = bool(num & 0x800)
     num = num & ~0x800  # remove web flag
@@ -208,10 +220,15 @@ def newwords(
         if not word_data[0]:
             raise HTTPException(status_code=500, detail="No daily words loaded")
 
-        idx = today_index(len(word_data[0]))
+        idx = today_index(len(word_data[0]), today)
         daily = word_data[0][idx]
 
         used.add(word_key(daily))
+
+        if today is not None:
+            daily["wtype"] = daily["desc"]
+
+        print(daily)
         items.append(to_base64(daily, isWeb))
 
     # 2️⃣ Fill remaining with unique random words
@@ -273,4 +290,43 @@ def newword(
     if not items:
         raise HTTPException(status_code=500, detail="No word generated")
     return items[0]
+
+def decode_hex_date(hex_date: str) -> datetime.date:
+    try:
+        # hex -> integer
+        dec = int(hex_date, 16)
+
+        # integer -> string
+        s = str(dec)
+
+        # ensure YYMMDD length
+        if len(s) != 8:
+            raise ValueError("Invalid date length")
+
+        yyyy = int(s[0:4])
+        mm = int(s[4:6])
+        dd = int(s[6:8])
+
+        return datetime.date(yyyy, mm, dd)
+
+    except Exception:
+        raise ValueError("Invalid hex date")
+
+@app.get("/newwords/h/{h}")
+def newwords_by_day(
+    h: str,
+    request: Request,
+    count: int = 20,
+    x_api_key: str | None = Header(None),
+):
+    today = decode_hex_date(h)
+
+    return newwords(
+        num=0x800,
+        request=request,
+        count=count,
+        today=today,
+        x_api_key=x_api_key,
+    )
+
 
