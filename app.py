@@ -228,7 +228,7 @@ def newwords(
         if today is not None:
             daily["wtype"] = daily["desc"]
 
-        print(daily)
+        #print(daily)
         items.append(to_base64(daily, isWeb))
 
     # 2️⃣ Fill remaining with unique random words
@@ -324,7 +324,7 @@ def newwords_by_day(
     return newwords(
         num=0x800,
         request=request,
-        count=count,
+        count=1,
         today=today,
         x_api_key=x_api_key,
     )
